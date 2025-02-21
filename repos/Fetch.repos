@@ -1,0 +1,22 @@
+[main]
+enabled=0
+reposdir=/dev/null
+
+# -----------------------------------------------------------------------------
+
+[epel-cisco-openh264]
+name=Extra Packages for Enterprise Linux 9 openh264 (From Cisco) - $basearch
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-cisco-openh264-9&arch=$basearch
+
+# -----------------------------------------------------------------------------
+
+[rpmfusion-free-updates]
+name=RPM Fusion for EL 9 - Free - Updates
+metalink=http://mirrors.rpmfusion.org/metalink?repo=free-el-updates-released-9&arch=$basearch
+
+[rpmfusion-nonfree-updates]
+name=RPM Fusion for EL 9 - Nonfree - Updates
+metalink=http://mirrors.rpmfusion.org/metalink?repo=nonfree-el-updates-released-9&arch=$basearch
+
+# -----------------------------------------------------------------------------
+

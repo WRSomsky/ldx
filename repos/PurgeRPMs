@@ -1,0 +1,187 @@
+#!/usr/bin/perl
+use warnings ;
+use strict ;
+
+sub vercmp
+  {
+  my $a = shift || '' ;
+  my $b = shift || '' ;
+  while (1)
+    {
+    if ($a eq $b) { return  0 }
+    if ($a eq '' and $b ne '') { return -1 }
+    if ($a ne '' and $b eq '') { return +1 }
+    my $A ; ($A, $a) = $a =~ /(\d+|\D+)(.*)/ ;
+    my $B ; ($B, $b) = $b =~ /(\d+|\D+)(.*)/ ;
+    if ($A =~ /^\d*$/ and $B =~ /^\d*$/)
+      {
+      if ($A+0 < $B+0) { return -1 }
+      if ($A+0 > $B+0) { return +1 }
+      }
+    else
+      {
+      if ($A lt $B) { return -1 }
+      if ($A gt $B) { return +1 }
+      }
+    }
+  }
+
+my $VERSION = '0.65' ;
+my $PROGRAM = 'PurgeRPMs' ;
+
+BEGIN # security blanket
+  {
+  umask 022 ;
+  $ENV{SHELL} = '/bin/sh' ;
+  $ENV{PATH}  = '/bin:/usr/bin' ;
+  @INC = grep ($_ ne ".", @INC) ;
+  delete @ENV {qw( IFS CDPATH ENV BASH_ENV )} ;
+  ($0) = $0 =~ /(.*)/ ; ## Untaint $0; Dodgy hack for pod2usage bug...
+  }
+
+use Pod::Usage ;
+use Getopt::Long qw(:config gnu_getopt) ;
+
+my $debug   = 0 ;
+my $verbose = 1 ;
+my $error   = 0 ;
+my $dryrun  = 0 ;
+my $relonly = 0 ; # preserve different versions, purge only releases
+
+
+sub info  { print STDERR @_ ; 1 }
+sub error { print STDERR @_ ; $error=1 ; undef }
+sub debug { print STDERR @_[1..$#_] if $debug   >= $_[0] ; 1 }
+sub verb  { print STDERR @_[1..$#_] if $verbose >= $_[0] ; 1 }
+
+GetOptions (
+
+  'relonly'     => \$relonly,
+  'd|debug:+'   => \$debug,
+  'v|verbose+'  => \$verbose,
+  'q|quiet'     => sub { $verbose = 0 },
+  'n|dryrun'    => \$dryrun,
+
+  'V|version'   => sub { print STDERR "$PROGRAM $VERSION\n" ; exit 1 ; },
+  'man'         => sub { pod2usage (-verbose=>2) },  # Full Doc to STDOUT
+  'help|?'      => sub { pod2usage (-verbose=>1) },  # Syn,Opts to STDOUT
+  ) or                   pod2usage (-verbose=>0) ;   # Synopsis to STDERR
+
+
+purge_dir ($_) foreach @ARGV ;
+
+exit 0 ; # --------------------------------------------------------------------
+
+sub purge_dir
+  {
+  my $dir = shift ; $dir =~ s|/+$|| ; # repo base
+
+  -d "$dir"
+    or mkdir "$dir"
+      or die "Cannot mkdir $dir: $!\n" ;
+
+  opendir DIR, "$dir" or die "Cannot open '$dir': $!\n" ;
+
+  my %latest ; # most recent release of pkg-ver.arch found
+
+  foreach my $file (sort readdir DIR)
+    {
+    next if $file =~ /^\./ ;
+    my $path = "$dir/$file" ;
+    debug 1, "PATH: $path\n" ;
+
+    if (-l $path and ! -e $path) # dangling symlink...
+      {
+      verb 1, "- $path\n" ;
+      unlink ($path) or error "Cannot delete '$path': $!\n" ;
+      }
+
+    elsif (-f $path and $file =~ m|^(.*/)?(.*)-(.*)-(.*)\.(.*)\.rpm$|)
+      {
+      my ($pkg,$ver,$rel,$arch)=($2,$3,$4,$5) ;
+      debug 1, " RPM: $pkg,$ver,$rel,$arch \n" ;
+      my $key = ($relonly) ? "$pkg-$ver.$arch" : "$pkg.$arch" ;
+
+      my $this = { path=>$path, arch=>$arch, ver=>$ver, rel=>$rel } ;
+      my $late = $latest{$key} ;
+
+      my $cmp =
+	vercmp ($this->{ver}, $late->{ver})
+          || vercmp ($this->{rel}, $late->{rel}) ;
+      ($late, $this) = ($this, $late) if $cmp > 0 ;
+      $latest{$key} = $late ;
+
+      if ($this->{path})
+	{
+	verb 1, "- $this->{path}\n" ;
+	if (!$dryrun)
+	  {
+	  unlink ($this->{path})
+	    or error "Cannot delete '$this->{path}': $!\n" ;
+	  }
+	}
+      }
+    }
+
+  }
+
+__END__ #======================================================================
+
+=head1 NAME
+
+PurgeRPMs - program to do something
+
+=head1 SYNOPSIS
+
+PurgeRPMs [options] rpm-directory
+
+=head1 DESCRIPTION
+
+B<PurgeRPMs> does something ...
+
+=head1 OPTIONS
+
+B<PurgeRPMs> supports the following command-line options:
+
+=over
+
+=item B<-d, --debug>
+
+Increases the debug level.
+
+=item B<-v, --verbose>
+
+Increases the verbosity level.
+
+=item B<-q, --quiet>
+
+Sets the verbosity level to 'quiet'.
+
+=item B<-n, --dryrun>
+
+Just tell what would be done -- don't actually do it.
+
+=item B<--man>
+
+Prints the manual page and exits.
+
+=item B<-?, --help>
+
+Prints a brief help message and exits.
+
+=item B<-V, --version>
+
+Prints the program name and version and exits.
+
+=back
+
+=head1 NOTES
+
+Yadda yadda yadda...
+
+=head1 AUTHOR
+
+W. R. Somsky <somsky@phys.washington.edu>
+
+=cut
+

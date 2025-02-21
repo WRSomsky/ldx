@@ -1,0 +1,27 @@
+PACS Linux Repo Cache
+=====================
+
+This directory contains mirrors of (the relevant parts of) the rpm
+repositories we normally use for phys/astro workstations and servers,
+as well as a self-generated repos for local additions (see ../pacs).
+
+  Fetch		- Script to mirror our desired repos
+  Fetch.repos	- Repo def file for reposync based mirroring
+  Fetch.cron	- Crontab to run Fetch nightly; copy to /etc/cron.d/
+  PurgeRPMs	- Script to purge superceeded rpms from a directory
+
+  rocky/	- Rocky Linux 9 repos
+  epel/		- EPEL repos for RHEL9 & derivatives
+  rpmfusion/	- RPMFusion repos for RHEL9 & derivatives
+  dell/		- Dell OMSA repos for RHEL9 & derivatives
+  zoom/		- Zoom repo for RHEL9 & derivatives
+  pacs/		- Local rpm repo for Rocky Linux 9
+
+References
+----------
+https://wiki.rockylinux.org/rocky/repo/
+https://linux.dell.com/repo/hardware/dsu/
+https://docs.fedoraproject.org/en-US/epel/
+https://zoom.us/download
+https://rpmfusion.org/
+

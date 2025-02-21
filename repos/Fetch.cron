@@ -1,0 +1,9 @@
+# Daily Linux Repo Mirroring
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+SHELL=/bin/bash
+MAILTO=root
+HOME=/
+
+30 02 * * *  root /data/ldx/rocky9/repos/Fetch daily
+

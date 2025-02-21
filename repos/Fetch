@@ -1,0 +1,112 @@
+#!/bin/bash
+
+REPO_HEAD=$(dirname $(realpath $0))
+
+# -----------------------------------------------------------------------------
+
+for arg in $* ; do
+  if [[ "$arg" =~ ^[a-zA-Z][a-zA-Z0-9]*$  ]] ; then eval _${arg///}=1 ; fi
+  if [[ "$arg" =~ ^[a-zA-Z][a-zA-Z0-9]*/$ ]] ; then eval _${arg///}=1 ; fi
+done ; ## DEBUG: set | sort | grep ^_
+
+# --- Rsync based mirroring ---------------------------------------------------
+
+Rsync() # dst src [-opt]...
+  {
+  DST=$1 ; shift
+  SRC=$1 ; shift
+  OPTS="-v --no-motd -rltHy"
+  OPTS="$OPTS --delete-excluded --delete-delay --delay-updates --partial"
+  while [ $# -gt 0 ] ; do
+    if [[ $1 == -* ]] ; then OPTS="$OPTS $1" ; shift
+    else echo "Rsync $DST; bad option: $1" ; exit 1
+    fi
+  done
+  echo === $DST ; mkdir -pv $REPO_HEAD/$DST
+  rsync $OPTS $SRC/ $REPO_HEAD/$DST/ | sed -e 's/^/    /'
+  find $REPO_HEAD/$DST/ -depth -type d -empty -delete
+  echo ""
+  }
+
+# --- Reposync based mirroring ------------------------------------------------
+
+Reposync() # dst src_repo [-opt]...
+  {
+  DST=$1 ; shift
+  REPO=$1 ; shift
+  OPTS="--newest-only --delete --download-metadata --remote-time"
+  while [ $# -gt 0 ] ; do
+    if [[ $1 == -* ]] ; then OPTS="$OPTS $1" ; shift
+    else echo "Reposync $DST; bad option: $1" ; exit 1
+    fi
+  done
+  echo === $DST ; mkdir -pv $REPO_HEAD/$DST
+  dnf reposync $OPTS --config $REPO_HEAD/Fetch.repos \
+    --repo $REPO --norepopath --download-path $REPO_HEAD/$DST/ \
+      | grep -v 'Already downloaded *$' | sed -e's/^/    /' -e's/ *$//'
+  echo ""
+  }
+
+# --- Rocky Linux -------------------------------------------------------------
+
+if (( _rocky || _daily || _all )) ; then
+  __=rsync://mirrors.ocf.berkeley.edu/rocky
+  __=rsync://mirror.math.princeton.edu/pub/rocky
+  Rsync rocky $__/9 \
+    -fH_/images \
+    -fH_/*/{source,aarch64,ppc64le,s390x} \
+    -fH_/*/*/{debug,kickstart}
+fi
+
+# --- EPEL --------------------------------------------------------------------
+
+if (( _epel || _daily || _all )) ; then
+  __=rsync://mirrors.ocf.berkeley.edu/fedora-epel
+  __=rsync://mirror.math.princeton.edu/pub/epel
+  Rsync epel $__/9 \
+    -fP_/openh264 \
+    -fS_/*/x86_64 -fH_/*/* \
+    -fH_/*/*/{debug,drpms}
+  #--
+  Reposync epel/openh264 epel-cisco-openh264
+fi
+
+# --- RPM Fusion --------------------------------------------------------------
+
+if (( _rpmfusion || _daily || _all )) ; then
+  __=rsync://mirrors.ocf.berkeley.edu/rpmfusion
+  __=rsync://mirror.math.princeton.edu/pub/rpmfusion
+  Rsync rpmfusion $__ \
+    -fH_/DIRECTORY_SIZES.txt \
+    -fS_/*/el -fH_/*/* \
+    -fS_/*/*/*/9 -fH_/*/*/*/* \
+    -fS_/*/*/*/*/x86_64 -fH_/*/*/*/*/* \
+    -fH_/*/*/*/*/*/{debug,repoview}
+fi
+
+# --- Dell OpenManage ---------------------------------------------------------
+
+# See https://linux.dell.com/repo/hardware/omsa.html
+# See https://linux.dell.com/repo/hardware/dsu/
+
+if ((_dsu || _dell || _daily || _all )) ; then
+  __=rsync://linux.dell.com/repo
+  Rsync dell $__/hardware/dsu \
+    -fS_/os_dependent/RHEL9_64 -fH_/os_dependent/*
+fi
+
+# --- Zoom --------------------------------------------------------------------
+
+if (( _zoom || _daily || _all )) ; then
+  __=https://zoom.us/client/latest/zoom_x86_64.rpm
+  DEST=zoom
+  echo === $DEST
+  mkdir -p $REPO_HEAD/$DEST/
+  wget  -P $REPO_HEAD/$DEST/ -nv -N $__
+  createrepo -d --update $REPO_HEAD/$DEST | sed -e's/^/    /'
+  echo ""
+fi
+
+# -----------------------------------------------------------------------------
+exit 0 ; # ====================================================================
+# -----------------------------------------------------------------------------
