@@ -1,0 +1,37 @@
+PACS Linux Distribution Center
+==============================
+
+The PACS Linux Distribution Center (LDC) consists of the files, scripts,
+and repos needed to install and maintain the PACS supported linux servers
+and workstations.  These are made available to the client machines via the
+LDC webserver at http://ldc.phys/ldc/. (Currently hosted on avalon.phys w/
+ldc.phys as a CNAME alias.)
+
+For installation, we use a custom usb boot-key (PACS-Linux.img,
+install/Boot) to launch a network install which uses a cgi-generated
+kickstart file (install/*/ks) and local mirrors of the needed rpm
+repositories (repos/*).
+
+Standard configuration is done via custom rpms distributed from a
+locally-generated rpm repository (pacs/, repos/pacs).
+
+Updates (nightly for workstations, on-demand for servers) are from the
+local repo mirrors.
+
+
+Webserver
+---------
+The webserver should be configured (/etc/httpd/conf/*) to publish the
+repos/* directory-trees and the install/*/ks cgi scripts to our building
+subnets and our virtual & colo'd machines.
+
+
+Files & Directories
+-------------------
+  - HEADER.html		LDC webpage banner
+  - README.html		Brief installer usage instructions
+  - repos/		Local cache of standard repositories
+  - pacs/		Locally developed & wrapped packages 
+  - install/		Installation scripts & image builder
+  - PACS-Linux.img	PACS Kwickstart installer USB image
+
